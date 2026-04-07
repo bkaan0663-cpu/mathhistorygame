@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Matematik Tarihi: Anlatım Aracı</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --bg-dark: #020617;
+            --card-bg: rgba(30, 41, 59, 0.85);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, var(--bg-dark) 80%);
+            color: #f8fafc;
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none; /* Ekran kaydırması tamamen iptal edildi, sabit ekran */
+        }
+
+        @media (orientation: portrait) and (max-width: 1023px) {
+            #landscape-warning { display: flex !important; }
+            #app-container { display: none; }
+        }
+
+        .card-wrapper {
+            perspective: 2000px;
+            width: 96vw;
+            max-width: 1200px;
+            height: 90vh;
+            position: relative;
+        }
+
+        .math-card {
+            width: 100%;
+            height: 100%;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: row;
+            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease;
+        }
+
+        @media (min-width: 1024px) {
+            .math-card { border-radius: 32px; }
+            .card-wrapper { height: 85vh; width: 94vw; }
+        }
+
+        .slide-out {
+            transform: translateX(-120%) rotateY(-20deg) scale(0.9);
+            opacity: 0;
+        }
+
+        .slide-in {
+            animation: slideIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(120%) rotateY(20deg) scale(0.9); opacity: 0; }
+            to { transform: translateX(0) rotateY(0deg) scale(1); opacity: 1; }
+        }
+
+        .photo-pane {
+            flex: 0.8;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .photo-pane::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, transparent 60%, rgba(2, 6, 23, 0.5));
+        }
+
+        .photo-pane img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .info-pane {
+            flex: 1.2;
+            padding: 2vh 3vw; /* Sabit boyut yerine ekran yüksekliğine göre dinamik padding */
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.4);
+            position: relative;
+            overflow: hidden; /* Taşma ve kaydırma engellendi */
+        }
+
+        @media (min-width: 1024px) {
+            .info-pane { padding: 3.5rem; }
+        }
+
+        /* İçeriğin ekrana tam sığması için esnek yapı */
+        .info-content {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .math-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.5rem, 7vh, 3.2rem); /* Font boyutu dikey yüksekliğe göre otomatik küçülür */
+            line-height: 1.1;
+            margin-bottom: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .blurred-text {
+            filter: blur(16px);
+            transition: filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .unblur {
+            filter: blur(0);
+        }
+
+        .tag-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+            border-radius: 100px;
+            font-size: clamp(0.6rem, 2.5vh, 0.75rem);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .fact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 1.5vh; /* Dinamik dikey boşluk */
+            font-size: clamp(0.8rem, 3.8vh, 1.1rem); /* Dinamik metin boyutu */
+            line-height: 1.3;
+            color: #cbd5e1;
+            font-weight: 300;
+        }
+
+        .fact-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin-top: 1vh;
+            box-shadow: 0 0 10px var(--accent-glow);
+            flex-shrink: 0;
+        }
+
+        .btn-reveal {
+            background: var(--accent);
+            box-shadow: 0 10px 20px -5px var(--accent-glow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            align-self: center;
+        }
+
+        .btn-reveal:hover {
+            transform: translateY(-2px);
+            background: #2563eb;
+        }
+
+        #landscape-warning {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .scroll-indicator {
+            margin-top: auto; 
+            padding-bottom: 1vh;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #64748b;
+            font-size: clamp(0.65rem, 3vh, 0.8rem);
+            font-weight: 500;
+        }
+
+        .scroll-line {
+            width: 30px;
+            height: 2px;
+            background: #334155;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scroll-line::after {
+            content: '';
+            position: absolute;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--accent);
+            animation: scrollLine 2s infinite;
+        }
+
+        @keyframes scrollLine {
+            to { left: 100%; }
+        }
+
+        .frac {
+            display: inline-block;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 0.85em;
+            margin: 0 2px;
+        }
+        .frac > span { display: block; padding: 0.1em; }
+        .frac span.bottom { border-top: 1px solid currentColor; }
+
+        .progress-text {
+            position: absolute;
+            top: 1vh;
+            right: 2vw;
+            font-size: clamp(0.6rem, 2.5vh, 0.75rem);
+            color: #94a3b8;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 12px;
+            border-radius: 20px;
+            z-index: 10;
+        }
+
+        @media (min-width: 1024px) {
+            .progress-text { top: 2rem; right: 3.5rem; background: transparent; padding: 0;}
+            .scroll-indicator { margin-top: 2.5rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="landscape-warning">
+        <div class="text-8xl mb-8">🔄</div>
+        <h2 class="text-3xl font-extrabold text-white mb-4">Lütfen Cihazı Çevirin</h2>
+        <p class="text-slate-400 max-w-xs leading-relaxed">Matematik Tarihi karşılıklı anlatım aracı için yatay mod gereklidir.</p>
+    </div>
+
+    <div id="app-container" class="card-wrapper"></div>
+
+    <div class="fixed bottom-4 left-6 z-0 text-slate-700 font-bold text-xs tracking-widest uppercase opacity-30 select-none pointer-events-none">
+        History of Mathematics / 2026
+    </div>
+
+    <script>
+        const historyOfMath = [
+            { name: "Ahmes (Ahmose)", era: "M.Ö. 1550", tag: "Mısır Papirüsleri", img: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Ahmes_Nefertari_Grab_10.JPG", facts: ["Rhind Papirüsü'nü kopyalayan kâtiptir; Mısır matematiğinin ana kaynağıdır.", "Matematiği 'Tüm gizli şeyleri anlama yolu' olarak tanımlamıştır.", "Birim kesirleri (1/n) kullanarak aritmetik sistemini kurmuştur.", "Problem çözümlerinde 'Yanlış Konum' metodunu belgelemiştir."] },
+            { name: "Thales", era: "M.Ö. 625 - 547", tag: "İyonya Okulu", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Illustrerad_Verldshistoria_band_I_Ill_107.jpg/500px-Illustrerad_Verldshistoria_band_I_Ill_107.jpg", facts: ["Matematiği ispatla (deductive reasoning) tanıştıran ilk filozoftur.", "Dairenin çap tarafından ikiye bölündüğünü ispatlayarak kanıt kültürünü başlattı.", "Piramitlerin boyunu, gölge benzerliklerini kullanarak ölçmüştür."] },
+            { name: "Pisagor", era: "M.Ö. 570 - 495", tag: "Sayılar Evreni", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Pythagoras_in_the_Roman_Forum%2C_Colosseum.jpg/500px-Pythagoras_in_the_Roman_Forum%2C_Colosseum.jpg", facts: ["Sayıların evrenin temeli olduğunu savunan gizemli bir kardeşlik örgütü kurdu.", "İrrasyonel sayıların (√2) keşfiyle matematik tarihindeki ilk büyük krizi çıkardı.", "Kenar ve köşegenin 'ölçülemez' olduğunu görerek geometriyi sarstı."] },
+            { name: "Elealı Zeno", era: "M.Ö. 490 - 430", tag: "Paradokslar", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjgGT1Ej3zhb-D5La59jZhy-_W8IkFQQNF40oUZZ2vXF9e-Y14a7ZufHbtKXkDWxug7NycxD5CLIR0jrznYDLJ1I80rmUSMJh0YgyQ7TNazA&s=10", facts: ["Sonsuz küçüklük ve hareket kavramlarını sorgulayan paradokslarıyla ünlüdür.", "Meşhur 'Aşil ve Kaplumbağa' paradoksuyla matematiği derin düşünceye itti.", "Mesafe kat etmenin sonsuz bölünme gerektirdiği üzerine kuramlar sundu."] },
+            { name: "Demokritos", era: "M.Ö. 460 - 370", tag: "Atomik Geometri", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmymlZznn5nerhuM21bcpEAwpGZT6OLhLxQ7Ksy-XNEnKTsW80o8vuAlYnQGzEbTxL7f3nhK1veVJIFaoBQXhbx_A8xO9pga7lTrJECOG8Q&s=10", facts: ["Koni ve piramidin hacimlerinin silindir/prizmanın 1/3'ü olduğunu buldu.", "Evrenin bölünemez atomlardan oluştuğu fikrini matematiğe uyarladı.", "Katı cisimlerin sonsuz ince dilimlerden oluştuğu düşüncesine öncülük etti."] },
+            { name: "Platon", era: "M.Ö. 427 - 347", tag: "Atina Akademisi", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Plato_Silanion_Musei_Capitolini_MC1377.jpg/500px-Plato_Silanion_Musei_Capitolini_MC1377.jpg", facts: ["Akademisinin kapısına 'Geometri bilmeyen girmesin' yazdıran filozoftur.", "Matematiksel nesnelerin soyut ve mükemmel idealar olduğunu savunmuştur.", "İrrasyonellik kavramını bilmeyenleri 'insan sayılmaya layık değil' diye niteler."] },
+            { name: "Aristo", era: "M.Ö. 384 - 322", tag: "Mantığın Temeli", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS82LPwbh7jN1tqgdS0odNUyy2Sl4PCaSTcGH8Djx20qEguxZhcY62ngkoBqtrYSQaZP4QqTl5etjtwwXDrmL8ZWx0-jF5rFU5BPf5dkW8F&s=10", facts: ["Tümdengelimli (deductive) mantığın kurallarını kesinlikle tanımladı.", "İspat biliminin kuramsal çerçevesini çizerek Öklid'e yol gösterdi.", "Matematiği diğer tüm bilimlerin temeli olarak konumlandırdı."] },
+            { name: "Aryabhata", era: "M.S. 476 - 550", tag: "Hint Matematiği", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSinAghCsSesi_RoZnJIsI7GwUOBexu_gY65Wd5LZLI5VkIj7e4C6Q7uJNj2-73AzbvqHeUBgitiwefJD7p48kUV1-iXxF-xU6ObYUFYkPE&s=10", facts: ["Pi (π) değerini 3.1416 olarak çok yakın bir hassasiyetle hesapladı.", "Dünya'nın kendi ekseni etrafında döndüğünü matematiksel olarak belirtti.", "Sinüs tablolarını geliştirerek trigonometriye büyük katkı sundu."] },
+            { name: "Sabit bin Kurra", era: "826 - 901", tag: "İslam Bilim Çağı", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLXrfw5qdsYhuf2amyhe53pf09U4u4-ipQqlVMg28dLWKn57RQPMKjiluSMg4B4gZ63r-p3sCkJ2d5spMWEiXIcVoXtEXsqKm5Ee2E9rxF&s=10", facts: ["Dost sayılar (amicable numbers) için genel bir kural geliştirdi.", "Öklid ve Apollonius'un eserlerini Arapçaya çevirerek bilimi köprüledi.", "İntegral hesabın öncüsü sayılan alan ve hacim hesapları yaptı."] },
+            { name: "İbn-i Heysem", era: "965 - 1040", tag: "Optik ve Geometri", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOCSYZlBocgxSbiZqisHGia3riiTDiZsbb74E716xc-f5GmRHDhoNWN17V-nRoeho0VUPSaR1hDxxjkFWgzHRcD31WjUjB4H1E0tw7NG-5Xg&s=10", facts: ["Optik biliminde matematiksel ispat yöntemini ilk kullanan bilgindir.", "Dördüncü dereceden denklemlerin çözümünde geometrik yöntemler sundu.", "Yansıma ve kırılma yasalarını geometri ile mükemmel şekilde açıkladı."] },
+            { name: "Ömer Hayyam", era: "1048 - 1131", tag: "Cebir ve Şiir", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9TARSUkylrmTYk7gSlCNrFJOGi6yO6fcOF3R4hwViBo6Fbr849Bft_l34Kjm1HTkaW8CBg0V6Lvnv7XzXIl2U7cJbTCPg8TpI1wqmDPEGIg&s=10", facts: ["Üçüncü dereceden denklemleri konik kesitler yardımıyla çözmüştür.", "Pascal Üçgeni olarak bilinen katsayıları çok önceden keşfetmiştir.", "Celali Takvimi'ni hazırlayarak zamanı matematiksel bir titizlikle ölçtü."] },
+            { name: "Pisalı Fibonacci", era: "1170 - 1250", tag: "Altın Oran", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPn6u_daWOvL_c-RnNI31C_ppQgHZfCXiDT0BeEG-lPbDgPHzw-RfpP_t-zZRNTSxC-M3gmgRH3pmGG22uh3Ed5FPMcvsQYhdwYrkaQs7f&s=10", facts: ["Hint-Arap rakam sistemini Avrupa'ya tanıtan 'Liber Abaci'yi yazdı.", "Kendi adıyla anılan sayı dizisini (1,1,2,3,5...) keşfetti.", "Doğadaki 'Altın Oran'ın matematiksel yapısını formüle etti."] },
+            { name: "Leonardo da Vinci", era: "1452 - 1519", tag: "Rönesans Dehası", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Leonardo_self_portrait.jpg/500px-Leonardo_self_portrait.jpg", facts: ["Altın oranı sanat ve anatomiyle harmanlayarak geometriye uyguladı.", "Perspektif kurallarını matematiksel bir temel üzerine inşa etti.", "Matematiği 'evrenin görsel dili' olarak kullanmıştır."] },
+            { name: "Gerolamo Cardano", era: "1501 - 1576", tag: "Kübik Denklemler", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Cardano.jpg/500px-Cardano.jpg", facts: ["3. ve 4. dereceden denklemlerin çözüm formüllerini yayımladı.", "Olasılık teorisinin ilk çalışmalarını başlatan matematikçilerdendir.", "Karmaşık sayıların (i) varlığını ilk kez fark eden öncülerdendir."] },
+            { name: "Galileo Galilei", era: "1564 - 1642", tag: "Modern Bilim", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg/500px-Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg", facts: ["Doğanın kitabının 'matematiksel bir dille' yazıldığını savundu.", "Sarkacın hareket yasalarını matematiksel hassasiyetle belirledi.", "İvme ve hız arasındaki ilişkiyi ilk kez formüle etti."] },
+            { name: "René Descartes", era: "1596 - 1650", tag: "Analitik Geometri", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg/500px-Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg", facts: ["Geometri ve cebiri birleştiren 'Kartezyen Koordinat' sistemini kurdu.", "Matematiksel denklemleri grafikler üzerinde temsil etmeyi başlattı.", "Bilinmeyenler için 'x, y, z' kullanımını yaygınlaştırdı."] },
+            { name: "Blaise Pascal", era: "1623 - 1662", tag: "Olasılık ve Hesap", img: "https://encrypted-tbn0.gstatic.com/licensed-image?q=tbn:ANd9GcRHXKd8UCufHkXuXEmz1RIfZorSAhKFSPJWznJV1YZhJC6Gc7L7PUgN-WdMAdnKWCbqWC_Lsg138Q8lgbiJh1H7_SKOooP5vz0VPzZ37ffaFLBTMyFqmFE2JdnddWn4ooWHKPmMI4UOeE3B&s=19", facts: ["Olasılık teorisinin temellerini atan 'Şans Teorisi'ni geliştirdi.", "İlk mekanik hesap makinelerinden birini (Pascaline) icat etti.", "Binom katsayılarını gösteren ünlü 'Pascal Üçgeni'ni kurguladı."] },
+            { name: "Jacob Bernoulli", era: "1654 - 1705", tag: "Sonsuz Seriler", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqvOJ-o9Khs86vcHK5mJQ5hRN5AWZIfrkI4g&s", facts: ["Olasılık teorisindeki 'Büyük Sayılar Yasası'nı kanıtladı.", "Bernoulli sayıları ve olasılık üzerine anıtsal bir eser yayımladı.", "Sonsuz seriler üzerine derin analizler yapan bir dâhidir."] },
+            { name: "Leonhard Euler", era: "1707 - 1783", tag: "Notasyon Ustası", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Leonhard_Euler.jpg/500px-Leonhard_Euler.jpg", facts: ["f(x), π ve e sayısını matematiksel standart haline getirdi.", "Graf teorisinin (Königsberg Köprüleri) kurucusu kabul edilir.", "Tarihin en güzel denklemini (e<sup>iπ</sup> + 1 = 0) buldu."] },
+            { name: "Albert Einstein", era: "1879 - 1955", tag: "Matematiksel Fizik", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQ13mU-Fg_x1cdjLhV7TYJvjpxx1GOsz7jfel-26jNWVFuFbbmUwNV9v4_jUpOgVPGJLYtAn0-yYddTky9ey6kcX2BqWZSzX8mKpkAY57l&s=10", facts: ["Eğri uzay-zaman geometrisini kullanarak genel göreliliği formüle etti.", "Kuantum teorisi ve istatistiksel mekaniğe matematiksel temel sağladı.", "Matematiğin doğayla uyumuna hayranlık duyan bir dâhidir."] },
+            { name: "Augustus De Morgan", era: "1806 - 1871", tag: "Sembolik Mantık", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjzYsszYIM4ITXLyKtO9ocPTEBtKa4Au5XvF3fHoejavYPwNVSP5rtoWNR_9SPiibVIaMT_9lukHZ5Eh5liEJHUkrWFEJNzf3hGB4nsmfR&s=10", facts: ["Kendi adıyla anılan sembolik mantık yasalarını geliştirdi.", "Matematiksel tümevarım (induction) terimini ilk kez o tanımladı.", "Cebiri sembolik bir mantık dili olarak yeniden kurguladı."] },
+            { name: "Öklid (Euclid)", era: "M.Ö. 300", tag: "Aksiyomatik Sistem", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Euklid-von-Alexandria_1.jpg/800px-Euklid-von-Alexandria_1.jpg", facts: ["Modern geometri eğitiminin temeli olan 'Elemanlar' kitabının yazarıdır.", "Geometriyi aksiyomlar ve postulatlar üzerine mantıksal bir zincirle kurdu.", "Asal sayıların sonsuzluğunu tümdengelimli yöntemle ispatlamıştır."] },
+            { name: "İskenderiyeli Hypatia", era: "M.S. 350 - 415", tag: "Son Büyük Bilgin", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsio0Q8PbZUfTgNiFUgeGWTWj9F2aSThcnzPHGrZ6FnDP-vKNxTN-fxhABV1iGTHb-fqBQ3wFSK_8nqn1qUbn45MAN6segP8-IxjbwOkR-MQ&s=10", facts: ["İskenderiye Okulu'nun son büyük temsilcisi olan kadın matematikçidir.", "Apollonius ve Diophantus'un eserleri üzerine yorumlar yazdı.", "Döneminin en saygın bilim insanı ve felsefe hocasıydı."] },
+            { name: "Knidoslu Eudoxus", era: "M.Ö. 408 - 355", tag: "Oranlar Teorisi", img: "https://scontent.fesb7-1.fna.fbcdn.net/v/t39.30808-6/471183339_10162168442881772_4293543163508209489_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=13d280&_nc_ohc=K2EFKkOdrt4Q7kNvwFp5Vf_&_nc_oc=Adq6EH4Iy--sPxcXAst1IWH4VGZXSG9-0_OnBFdWipozdtGlETp6LeFx4caDHD3wAT4&_nc_zt=23&_nc_ht=scontent.fesb7-1.fna&_nc_gid=yz_yprEg_s4oGMfc6FpvhA&_nc_ss=7a3a8&oh=00_Af0Hmz73UK8oDcyTD-tN_bw_R0WlOtk1quetIcfdMxaEyg&oe=69DB4AEA", facts: ["Arşimet'in kullandığı 'Tüketme Yöntemi'nin gerçek mimarıdır.", "İrrasyonel büyüklükleri geometriyle tutarlı hale getiren oranlar teorisini kurdu.", "Gök cisimlerinin hareketlerini açıklayan küreler modelini geliştirdi."] },
+            { name: "Sakızlı Hipokrat", era: "M.Ö. 470 - 410", tag: "Öğelerin Öncüsü", img: "https://www.girgin.org/wp-content/uploads/2018/03/Hipokrat.jpg", facts: ["Geometrinin öğelerini (Elements) ilk kez sistematik kitaplaştıran kişidir.", "'Ayıcıkların kareselleştirilmesi' (Lunes) problemi ile tanınır.", "Geometrik ispatları mantıksal bir sıra ile sunan ilk öncülerdendir."] },
+            { name: "Arşimet", era: "M.Ö. 287 - 212", tag: "Analiz ve Mekanik", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Domenico-Fetti_Archimedes_1620.jpg/500px-Domenico-Fetti_Archimedes_1620.jpg", facts: ["Pi sayısını 3 <span class='frac'><span>10</span><span class='bottom'>71</span></span> < π < 3 <span class='frac'><span>1</span><span class='bottom'>7</span></span> aralığında hesapladı.", "Daire alanını çokgenlerle (exhaustion) hesaplayan dâhidir.", "Mekanik dengeleri geometri ispatlarında bir yöntem olarak kullandı."] },
+            { name: "Eratosthenes", era: "M.Ö. 276 - 194", tag: "Dünyanın Çevresi", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Eratosthenes_profile.png/500px-Eratosthenes_profile.png", facts: ["Dünyanın çevresini gölge boyları ve mesafe ile ölçmeyi başardı.", "Asal sayıları ayıklamak için 'Eratosthenes Kalburu'nu buldu.", "Matematiksel coğrafya biliminin ismini koyan ve kuran kişidir."] },
+            { name: "Pergeli Apollonius", era: "M.Ö. 262 - 190", tag: "Konik Kesitler", img: "https://upload.wikimedia.org/wikipedia/commons/6/63/Apollonii_Pergei_Opera_1537_detail.jpg", facts: ["Elips, Parabol ve Hiperbol isimlerini literatüre kazandıran dâhidir.", "8 kitaptan oluşan 'Conics' (Konikler) adlı anıtsal eserin yazarıdır.", "Konikleri tek bir koni yüzeyini keserek tanımlayan sistemi kurdu."] },
+            { name: "Diophantus", era: "M.S. 200 - 284", tag: "Cebirin Babası", img: "https://upload.wikimedia.org/wikipedia/commons/6/61/%CE%94%CE%B9%CF%8C%CF%86%CE%B1%CE%BD%CF%84%CE%BF%CF%82_-_Diophantos_-_%D0%94%D0%98%D0%9E%D0%A4%D0%90%D0%9D%D0%A2.jpg", facts: ["Sayılar teorisi üzerine kurulu 'Arithmetica' adlı eserin yazarıdır.", "Denklemleri sembolik bir dil kullanarak çözen ilk öncüdür.", "Belirsiz denklemlerin tam sayı çözümleri üzerine uzmanlaşmıştır."] },
+            { name: "Harezmi", era: "780 - 850", tag: "Cebir ve Algoritma", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/1983_CPA_5426_%281%29.png/500px-1983_CPA_5426_%281%29.png", facts: ["Cebiri bağımsız bir matematik dalı olarak kuran 'El-Cebr'i yazmıştır.", "Bilinmeyen (x) için sistematik çözüm yolları ve algoritmalar sundu.", "Sıfırın ve onluk sistemin tüm dünyada yayılmasını sağladı."] },
+            { name: "Isaac Newton", era: "1643 - 1727", tag: "Evrensel Bilim", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Portrait_of_Sir_Isaac_Newton%2C_1689_%28brightened%29.jpg/500px-Portrait_of_Sir_Isaac_Newton%2C_1689_%28brightened%29.jpg", facts: ["Türev ve integral işlemlerini 'Kalkülüs' altında birleştirmiştir.", "Evrensel çekim yasasını matematiksel bir dil kullanarak ispatladı.", "Modern bilimin yönünü değiştiren 'Principia'yı yazmıştır."] },
+            { name: "Leibniz", era: "1646 - 1716", tag: "Sembolik Kalkülüs", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Christoph_Bernhard_Francke_-_Bildnis_des_Philosophen_Leibniz_%28ca._1695%29.jpg/500px-Christoph_Bernhard_Francke_-_Bildnis_des_Philosophen_Leibniz_%28ca._1695%29.jpg", facts: ["Bugün kullanılan dx ve ∫ sembollerini içeren modern notasyonu kurdu.", "Modern bilgisayar mantığının temeli olan binary sistemi üzerine çalıştı.", "Newton ile eş zamanlı olarak Kalkülüs'ü keşfeden dâhidir."] }
+        ];
+
+        let pool = [];
+        let isAnimating = false;
+        const container = document.getElementById('app-container');
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function resetPool() {
+            pool = Array.from({length: historyOfMath.length}, (_, i) => i);
+            shuffle(pool);
+        }
+
+        function createCard(dataIndex) {
+            const m = historyOfMath[dataIndex];
+            const card = document.createElement('div');
+            card.className = 'math-card slide-in';
+            
+            const factsHtml = m.facts.map(fact => `
+                <div class="fact-item">
+                    <span class="fact-dot"></span>
+                    <span>${fact}</span>
+                </div>
+            `).join('');
+
+            const currentOrder = historyOfMath.length - pool.length;
+
+            card.innerHTML = `
+                <div class="photo-pane">
+                    <div class="absolute top-4 left-4 lg:top-8 lg:left-8 z-10">
+                        <span class="tag-badge">${m.tag}</span>
+                    </div>
+                    <img src="${m.img}" alt="Matematikçi" loading="lazy" onerror="this.src='https://via.placeholder.com/800x1200?text=Portre+Bekleniyor'">
+                </div>
+                <div class="info-pane">
+                    <div class="progress-text">${currentOrder} / ${historyOfMath.length}</div>
+                    
+                    <div class="info-content">
+                        <div class="mb-2 lg:mb-6 mt-auto">
+                            <h1 id="math-name" class="math-title blurred-text text-white">${m.name}</h1>
+                            <div class="flex items-center justify-between mt-1 lg:mt-2">
+                                <p class="text-slate-400 font-medium text-xs lg:text-lg italic">${m.era}</p>
+                                <button onclick="revealName(this)" class="btn-reveal px-4 py-1.5 lg:px-8 lg:py-3 rounded-full text-[0.65rem] lg:text-sm font-bold tracking-widest uppercase text-white shadow-xl">İSMİ AÇ</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-grow flex flex-col justify-center mb-2 lg:mb-6">
+                            ${factsHtml}
+                        </div>
+                        
+                        <div class="scroll-indicator">
+                            <div class="scroll-line"></div>
+                            <span>Sonraki Matematikçi</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function revealName(btn) {
+            const nameEl = btn.closest('.info-pane').querySelector('#math-name');
+            nameEl.classList.add('unblur');
+            btn.style.opacity = '0';
+            btn.style.pointerEvents = 'none';
+        }
+
+        function nextCard() {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            const old = container.querySelector('.math-card');
+            if(old) {
+                old.classList.remove('slide-in');
+                old.classList.add('slide-out');
+                setTimeout(() => {
+                    old.remove();
+                    renderNext();
+                    isAnimating = false;
+                }, 600);
+            } else {
+                renderNext();
+                isAnimating = false;
+            }
+        }
+
+        function renderNext() {
+            if (pool.length === 0) {
+                resetPool();
+            }
+            const nextIndex = pool.shift();
+            container.appendChild(createCard(nextIndex));
+        }
+
+        // Swipe & Scroll Logic
+        let startX = 0;
+        let startY = 0;
+        
+        window.addEventListener('touchstart', e => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, {passive: true});
+        
+        window.addEventListener('touchend', e => {
+            const diffX = startX - e.changedTouches[0].clientX;
+            const diffY = Math.abs(startY - e.changedTouches[0].clientY);
+            
+            // Yana kaydırma algılaması (dikey hareketleri yok sayar)
+            if (diffX > 60 && diffY < 50) {
+                nextCard();
+            }
+        }, {passive: true});
+
+        let scrollTimeout;
+        window.addEventListener('wheel', e => {
+            // Yalnızca belirgin yatay kaydırmalarda çalışır
+            if (Math.abs(e.deltaX) > 50 && Math.abs(e.deltaY) < 20) {
+                if (!scrollTimeout) {
+                    nextCard();
+                    scrollTimeout = setTimeout(() => scrollTimeout = null, 1000);
+                }
+            }
+        }, {passive: true});
+
+        window.addEventListener('keydown', e => {
+            if (["ArrowRight", " ", "Enter"].includes(e.key)) {
+                nextCard();
+            }
+        });
+
+        window.onload = () => {
+            resetPool();
+            renderNext();
+        };
+    </script>
+</body>
+</html>
