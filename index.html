@@ -26,12 +26,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            touch-action: none; /* Ekran kaydırması tamamen iptal edildi, sabit ekran */
+            touch-action: pan-y;
         }
 
         @media (orientation: portrait) and (max-width: 1023px) {
             #landscape-warning { display: flex !important; }
-            #app-container { display: none; }
+            #app-container, #start-screen { display: none !important; }
+        }
+
+        #start-screen {
+            background: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, var(--bg-dark) 80%);
+        }
+
+        .lang-btn {
+            transition: all 0.3s ease;
+        }
+        .lang-btn.active {
+            color: #3b82f6;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+            opacity: 1;
         }
 
         .card-wrapper {
@@ -97,19 +111,18 @@
 
         .info-pane {
             flex: 1.2;
-            padding: 2vh 3vw; /* Sabit boyut yerine ekran yüksekliğine göre dinamik padding */
+            padding: 2vh 3vw;
             display: flex;
             flex-direction: column;
             background: rgba(15, 23, 42, 0.4);
             position: relative;
-            overflow: hidden; /* Taşma ve kaydırma engellendi */
+            overflow-y: auto;
         }
 
         @media (min-width: 1024px) {
             .info-pane { padding: 3.5rem; }
         }
 
-        /* İçeriğin ekrana tam sığması için esnek yapı */
         .info-content {
             height: 100%;
             width: 100%;
@@ -120,7 +133,7 @@
 
         .math-title {
             font-family: 'Playfair Display', serif;
-            font-size: clamp(1.5rem, 7vh, 3.2rem); /* Font boyutu dikey yüksekliğe göre otomatik küçülür */
+            font-size: clamp(1.5rem, 7vh, 3.2rem);
             line-height: 1.1;
             margin-bottom: 0;
             letter-spacing: -0.02em;
@@ -153,17 +166,17 @@
         .fact-item {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 1.5vh; /* Dinamik dikey boşluk */
-            font-size: clamp(0.8rem, 3.8vh, 1.1rem); /* Dinamik metin boyutu */
-            line-height: 1.3;
-            color: #cbd5e1;
-            font-weight: 300;
+            gap: 14px;
+            margin-bottom: 1.5vh; 
+            font-size: clamp(1.05rem, 2.6vh, 1.25rem); /* Büyütüldü ve optimize edildi */
+            line-height: 1.55; /* Okunabilirlik için satır aralığı açıldı */
+            color: #ffffff; /* Daha net beyaz */
+            font-weight: 500; /* İncelikten kurtulup daha kalın, daha net hale getirildi */
         }
 
         .fact-dot {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             background: var(--accent);
             border-radius: 50%;
             margin-top: 1vh;
@@ -203,9 +216,9 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            color: #64748b;
+            color: #94a3b8;
             font-size: clamp(0.65rem, 3vh, 0.8rem);
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .scroll-line {
@@ -259,61 +272,275 @@
             .scroll-indicator { margin-top: 2.5rem; }
         }
 
+        .info-pane::-webkit-scrollbar { width: 5px; }
+        .info-pane::-webkit-scrollbar-track { background: transparent; }
+        .info-pane::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="landscape-warning">
-        <div class="text-8xl mb-8">🔄</div>
-        <h2 class="text-3xl font-extrabold text-white mb-4">Lütfen Cihazı Çevirin</h2>
-        <p class="text-slate-400 max-w-xs leading-relaxed">Matematik Tarihi karşılıklı anlatım aracı için yatay mod gereklidir.</p>
+    <!-- Başlangıç Ekranı (Start Screen) -->
+    <div id="start-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center w-full h-full">
+        
+        <!-- Dil Seçimi -->
+        <div class="absolute top-8 right-12 flex gap-4">
+            <button onclick="setLanguage('tr')" id="btn-tr" class="lang-btn active font-bold text-xl opacity-50 hover:opacity-100 uppercase tracking-widest">TR</button>
+            <span class="text-slate-600 text-xl">|</span>
+            <button onclick="setLanguage('en')" id="btn-en" class="lang-btn font-bold text-xl opacity-50 hover:opacity-100 uppercase tracking-widest">EN</button>
+        </div>
+
+        <!-- Başlıklar -->
+        <div class="text-center mb-12">
+            <h1 id="ui-title" class="text-5xl md:text-7xl font-extrabold font-['Playfair_Display'] mb-4 text-white drop-shadow-lg tracking-tight">Matematik Tarihi</h1>
+            <h2 id="ui-subtitle" class="text-xl md:text-2xl text-blue-400 font-light tracking-[0.2em] uppercase">Anlatım Aracı</h2>
+        </div>
+
+        <!-- Başla Butonu -->
+        <button onclick="startGame()" id="ui-start" class="px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-lg tracking-[0.15em] shadow-[0_0_30px_rgba(59,130,246,0.4)] transition-all transform hover:scale-105 mb-16">
+            BAŞLA
+        </button>
+
+        <!-- Hazırlayanlar Bölümü -->
+        <div class="absolute bottom-8 w-full flex flex-col items-center">
+            <p id="ui-prep" class="text-xs text-slate-400 uppercase tracking-[0.2em] mb-2 font-semibold">Hazırlayanlar</p>
+            <p class="text-sm md:text-base font-bold text-slate-200 tracking-wide text-center">EREN CENGİZ &nbsp;•&nbsp; MEHMET DENİZ &nbsp;•&nbsp; BUĞRA KAAN MEYVECİ</p>
+        </div>
     </div>
 
-    <div id="app-container" class="card-wrapper"></div>
+    <!-- Yan Çevir Uyarısı -->
+    <div id="landscape-warning">
+        <div class="text-8xl mb-8">🔄</div>
+        <h2 id="warn-title" class="text-3xl font-extrabold text-white mb-4">Lütfen Cihazı Çevirin</h2>
+        <p id="warn-desc" class="text-slate-400 max-w-xs leading-relaxed">Matematik Tarihi karşılıklı anlatım aracı için yatay mod gereklidir.</p>
+    </div>
 
-    <div class="fixed bottom-4 left-6 z-0 text-slate-700 font-bold text-xs tracking-widest uppercase opacity-30 select-none pointer-events-none">
+    <!-- Ana Uygulama Konteyneri -->
+    <div id="app-container" class="card-wrapper" style="display: none;"></div>
+
+    <!-- Alt Kısım Fligran (Gizli başlar, oyun başlayınca görünür) -->
+    <div id="watermark" style="display: none;" class="fixed bottom-4 left-6 z-0 text-slate-700 font-bold text-xs tracking-widest uppercase opacity-30 select-none pointer-events-none">
         History of Mathematics / 2026
     </div>
 
     <script>
+        // Her biri için tam 5 bilgi içeren detaylı İki Dilli Veri Seti
         const historyOfMath = [
-            { name: "Ahmes (Ahmose)", era: "M.Ö. 1550", tag: "Mısır Papirüsleri", img: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Ahmes_Nefertari_Grab_10.JPG", facts: ["Rhind Papirüsü'nü kopyalayan kâtiptir; Mısır matematiğinin ana kaynağıdır.", "Matematiği 'Tüm gizli şeyleri anlama yolu' olarak tanımlamıştır.", "Birim kesirleri (1/n) kullanarak aritmetik sistemini kurmuştur.", "Problem çözümlerinde 'Yanlış Konum' metodunu belgelemiştir."] },
-            { name: "Thales", era: "M.Ö. 625 - 547", tag: "İyonya Okulu", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Illustrerad_Verldshistoria_band_I_Ill_107.jpg/500px-Illustrerad_Verldshistoria_band_I_Ill_107.jpg", facts: ["Matematiği ispatla (deductive reasoning) tanıştıran ilk filozoftur.", "Dairenin çap tarafından ikiye bölündüğünü ispatlayarak kanıt kültürünü başlattı.", "Piramitlerin boyunu, gölge benzerliklerini kullanarak ölçmüştür."] },
-            { name: "Pisagor", era: "M.Ö. 570 - 495", tag: "Sayılar Evreni", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Pythagoras_in_the_Roman_Forum%2C_Colosseum.jpg/500px-Pythagoras_in_the_Roman_Forum%2C_Colosseum.jpg", facts: ["Sayıların evrenin temeli olduğunu savunan gizemli bir kardeşlik örgütü kurdu.", "İrrasyonel sayıların (√2) keşfiyle matematik tarihindeki ilk büyük krizi çıkardı.", "Kenar ve köşegenin 'ölçülemez' olduğunu görerek geometriyi sarstı."] },
-            { name: "Elealı Zeno", era: "M.Ö. 490 - 430", tag: "Paradokslar", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjgGT1Ej3zhb-D5La59jZhy-_W8IkFQQNF40oUZZ2vXF9e-Y14a7ZufHbtKXkDWxug7NycxD5CLIR0jrznYDLJ1I80rmUSMJh0YgyQ7TNazA&s=10", facts: ["Sonsuz küçüklük ve hareket kavramlarını sorgulayan paradokslarıyla ünlüdür.", "Meşhur 'Aşil ve Kaplumbağa' paradoksuyla matematiği derin düşünceye itti.", "Mesafe kat etmenin sonsuz bölünme gerektirdiği üzerine kuramlar sundu."] },
-            { name: "Demokritos", era: "M.Ö. 460 - 370", tag: "Atomik Geometri", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmymlZznn5nerhuM21bcpEAwpGZT6OLhLxQ7Ksy-XNEnKTsW80o8vuAlYnQGzEbTxL7f3nhK1veVJIFaoBQXhbx_A8xO9pga7lTrJECOG8Q&s=10", facts: ["Koni ve piramidin hacimlerinin silindir/prizmanın 1/3'ü olduğunu buldu.", "Evrenin bölünemez atomlardan oluştuğu fikrini matematiğe uyarladı.", "Katı cisimlerin sonsuz ince dilimlerden oluştuğu düşüncesine öncülük etti."] },
-            { name: "Platon", era: "M.Ö. 427 - 347", tag: "Atina Akademisi", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Plato_Silanion_Musei_Capitolini_MC1377.jpg/500px-Plato_Silanion_Musei_Capitolini_MC1377.jpg", facts: ["Akademisinin kapısına 'Geometri bilmeyen girmesin' yazdıran filozoftur.", "Matematiksel nesnelerin soyut ve mükemmel idealar olduğunu savunmuştur.", "İrrasyonellik kavramını bilmeyenleri 'insan sayılmaya layık değil' diye niteler."] },
-            { name: "Aristo", era: "M.Ö. 384 - 322", tag: "Mantığın Temeli", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS82LPwbh7jN1tqgdS0odNUyy2Sl4PCaSTcGH8Djx20qEguxZhcY62ngkoBqtrYSQaZP4QqTl5etjtwwXDrmL8ZWx0-jF5rFU5BPf5dkW8F&s=10", facts: ["Tümdengelimli (deductive) mantığın kurallarını kesinlikle tanımladı.", "İspat biliminin kuramsal çerçevesini çizerek Öklid'e yol gösterdi.", "Matematiği diğer tüm bilimlerin temeli olarak konumlandırdı."] },
-            { name: "Aryabhata", era: "M.S. 476 - 550", tag: "Hint Matematiği", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSinAghCsSesi_RoZnJIsI7GwUOBexu_gY65Wd5LZLI5VkIj7e4C6Q7uJNj2-73AzbvqHeUBgitiwefJD7p48kUV1-iXxF-xU6ObYUFYkPE&s=10", facts: ["Pi (π) değerini 3.1416 olarak çok yakın bir hassasiyetle hesapladı.", "Dünya'nın kendi ekseni etrafında döndüğünü matematiksel olarak belirtti.", "Sinüs tablolarını geliştirerek trigonometriye büyük katkı sundu."] },
-            { name: "Sabit bin Kurra", era: "826 - 901", tag: "İslam Bilim Çağı", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLXrfw5qdsYhuf2amyhe53pf09U4u4-ipQqlVMg28dLWKn57RQPMKjiluSMg4B4gZ63r-p3sCkJ2d5spMWEiXIcVoXtEXsqKm5Ee2E9rxF&s=10", facts: ["Dost sayılar (amicable numbers) için genel bir kural geliştirdi.", "Öklid ve Apollonius'un eserlerini Arapçaya çevirerek bilimi köprüledi.", "İntegral hesabın öncüsü sayılan alan ve hacim hesapları yaptı."] },
-            { name: "İbn-i Heysem", era: "965 - 1040", tag: "Optik ve Geometri", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOCSYZlBocgxSbiZqisHGia3riiTDiZsbb74E716xc-f5GmRHDhoNWN17V-nRoeho0VUPSaR1hDxxjkFWgzHRcD31WjUjB4H1E0tw7NG-5Xg&s=10", facts: ["Optik biliminde matematiksel ispat yöntemini ilk kullanan bilgindir.", "Dördüncü dereceden denklemlerin çözümünde geometrik yöntemler sundu.", "Yansıma ve kırılma yasalarını geometri ile mükemmel şekilde açıkladı."] },
-            { name: "Ömer Hayyam", era: "1048 - 1131", tag: "Cebir ve Şiir", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9TARSUkylrmTYk7gSlCNrFJOGi6yO6fcOF3R4hwViBo6Fbr849Bft_l34Kjm1HTkaW8CBg0V6Lvnv7XzXIl2U7cJbTCPg8TpI1wqmDPEGIg&s=10", facts: ["Üçüncü dereceden denklemleri konik kesitler yardımıyla çözmüştür.", "Pascal Üçgeni olarak bilinen katsayıları çok önceden keşfetmiştir.", "Celali Takvimi'ni hazırlayarak zamanı matematiksel bir titizlikle ölçtü."] },
-            { name: "Pisalı Fibonacci", era: "1170 - 1250", tag: "Altın Oran", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPn6u_daWOvL_c-RnNI31C_ppQgHZfCXiDT0BeEG-lPbDgPHzw-RfpP_t-zZRNTSxC-M3gmgRH3pmGG22uh3Ed5FPMcvsQYhdwYrkaQs7f&s=10", facts: ["Hint-Arap rakam sistemini Avrupa'ya tanıtan 'Liber Abaci'yi yazdı.", "Kendi adıyla anılan sayı dizisini (1,1,2,3,5...) keşfetti.", "Doğadaki 'Altın Oran'ın matematiksel yapısını formüle etti."] },
-            { name: "Leonardo da Vinci", era: "1452 - 1519", tag: "Rönesans Dehası", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7qDzl_2DU2LAyxoNid2_7NT0yQik-8cM8CyZEp_OdvnD-0-A8erB6pls5oHulK5heh7bktD8OkfQbvgHo8GVnDwDKAeTXlDjQYO8XtIst&s=10", facts: ["Altın oranı sanat ve anatomiyle harmanlayarak geometriye uyguladı.", "Perspektif kurallarını matematiksel bir temel üzerine inşa etti.", "Matematiği 'evrenin görsel dili' olarak kullanmıştır."] },
-            { name: "Gerolamo Cardano", era: "1501 - 1576", tag: "Kübik Denklemler", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSr0DTB8NBB-dtHh1Bo0ICzhHsCBYiw7Ct5MUWq1u86EaGAXgHeQQ4O5bdKuOGI8ZLNrI_ymrbbmxyw-nq1Xkus1fcsfSKs6fX__CgVIT2p5A&s=10", facts: ["3. ve 4. dereceden denklemlerin çözüm formüllerini yayımladı.", "Olasılık teorisinin ilk çalışmalarını başlatan matematikçilerdendir.", "Karmaşık sayıların (i) varlığını ilk kez fark eden öncülerdendir."] },
-            { name: "Galileo Galilei", era: "1564 - 1642", tag: "Modern Bilim", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg/500px-Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg", facts: ["Doğanın kitabının 'matematiksel bir dille' yazıldığını savundu.", "Sarkacın hareket yasalarını matematiksel hassasiyetle belirledi.", "İvme ve hız arasındaki ilişkiyi ilk kez formüle etti."] },
-            { name: "René Descartes", era: "1596 - 1650", tag: "Analitik Geometri", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg/500px-Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg", facts: ["Geometri ve cebiri birleştiren 'Kartezyen Koordinat' sistemini kurdu.", "Matematiksel denklemleri grafikler üzerinde temsil etmeyi başlattı.", "Bilinmeyenler için 'x, y, z' kullanımını yaygınlaştırdı."] },
-            { name: "Blaise Pascal", era: "1623 - 1662", tag: "Olasılık ve Hesap", img: "https://encrypted-tbn0.gstatic.com/licensed-image?q=tbn:ANd9GcRHXKd8UCufHkXuXEmz1RIfZorSAhKFSPJWznJV1YZhJC6Gc7L7PUgN-WdMAdnKWCbqWC_Lsg138Q8lgbiJh1H7_SKOooP5vz0VPzZ37ffaFLBTMyFqmFE2JdnddWn4ooWHKPmMI4UOeE3B&s=19", facts: ["Olasılık teorisinin temellerini atan 'Şans Teorisi'ni geliştirdi.", "İlk mekanik hesap makinelerinden birini (Pascaline) icat etti.", "Binom katsayılarını gösteren ünlü 'Pascal Üçgeni'ni kurguladı."] },
-            { name: "Jacob Bernoulli", era: "1654 - 1705", tag: "Sonsuz Seriler", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqvOJ-o9Khs86vcHK5mJQ5hRN5AWZIfrkI4g&s", facts: ["Olasılık teorisindeki 'Büyük Sayılar Yasası'nı kanıtladı.", "Bernoulli sayıları ve olasılık üzerine anıtsal bir eser yayımladı.", "Sonsuz seriler üzerine derin analizler yapan bir dâhidir."] },
-            { name: "Leonhard Euler", era: "1707 - 1783", tag: "Notasyon Ustası", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Leonhard_Euler.jpg/500px-Leonhard_Euler.jpg", facts: ["f(x), π ve e sayısını matematiksel standart haline getirdi.", "Graf teorisinin (Königsberg Köprüleri) kurucusu kabul edilir.", "Tarihin en güzel denklemini (e<sup>iπ</sup> + 1 = 0) buldu."] },
-            { name: "Albert Einstein", era: "1879 - 1955", tag: "Matematiksel Fizik", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQ13mU-Fg_x1cdjLhV7TYJvjpxx1GOsz7jfel-26jNWVFuFbbmUwNV9v4_jUpOgVPGJLYtAn0-yYddTky9ey6kcX2BqWZSzX8mKpkAY57l&s=10", facts: ["Eğri uzay-zaman geometrisini kullanarak genel göreliliği formüle etti.", "Kuantum teorisi ve istatistiksel mekaniğe matematiksel temel sağladı.", "Matematiğin doğayla uyumuna hayranlık duyan bir dâhidir."] },
-            { name: "Augustus De Morgan", era: "1806 - 1871", tag: "Sembolik Mantık", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjzYsszYIM4ITXLyKtO9ocPTEBtKa4Au5XvF3fHoejavYPwNVSP5rtoWNR_9SPiibVIaMT_9lukHZ5Eh5liEJHUkrWFEJNzf3hGB4nsmfR&s=10", facts: ["Kendi adıyla anılan sembolik mantık yasalarını geliştirdi.", "Matematiksel tümevarım (induction) terimini ilk kez o tanımladı.", "Cebiri sembolik bir mantık dili olarak yeniden kurguladı."] },
-            { name: "Öklid (Euclid)", era: "M.Ö. 300", tag: "Aksiyomatik Sistem", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Euklid-von-Alexandria_1.jpg/800px-Euklid-von-Alexandria_1.jpg", facts: ["Modern geometri eğitiminin temeli olan 'Elemanlar' kitabının yazarıdır.", "Geometriyi aksiyomlar ve postulatlar üzerine mantıksal bir zincirle kurdu.", "Asal sayıların sonsuzluğunu tümdengelimli yöntemle ispatlamıştır."] },
-            { name: "İskenderiyeli Hypatia", era: "M.S. 350 - 415", tag: "Son Büyük Bilgin", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsio0Q8PbZUfTgNiFUgeGWTWj9F2aSThcnzPHGrZ6FnDP-vKNxTN-fxhABV1iGTHb-fqBQ3wFSK_8nqn1qUbn45MAN6segP8-IxjbwOkR-MQ&s=10", facts: ["İskenderiye Okulu'nun son büyük temsilcisi olan kadın matematikçidir.", "Apollonius ve Diophantus'un eserleri üzerine yorumlar yazdı.", "Döneminin en saygın bilim insanı ve felsefe hocasıydı."] },
-            { name: "Knidoslu Eudoxus", era: "M.Ö. 408 - 355", tag: "Oranlar Teorisi", img: "https://scontent.fesb7-1.fna.fbcdn.net/v/t39.30808-6/471183339_10162168442881772_4293543163508209489_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=13d280&_nc_ohc=K2EFKkOdrt4Q7kNvwFp5Vf_&_nc_oc=Adq6EH4Iy--sPxcXAst1IWH4VGZXSG9-0_OnBFdWipozdtGlETp6LeFx4caDHD3wAT4&_nc_zt=23&_nc_ht=scontent.fesb7-1.fna&_nc_gid=yz_yprEg_s4oGMfc6FpvhA&_nc_ss=7a3a8&oh=00_Af0Hmz73UK8oDcyTD-tN_bw_R0WlOtk1quetIcfdMxaEyg&oe=69DB4AEA", facts: ["Arşimet'in kullandığı 'Tüketme Yöntemi'nin gerçek mimarıdır.", "İrrasyonel büyüklükleri geometriyle tutarlı hale getiren oranlar teorisini kurdu.", "Gök cisimlerinin hareketlerini açıklayan küreler modelini geliştirdi."] },
-            { name: "Sakızlı Hipokrat", era: "M.Ö. 470 - 410", tag: "Öğelerin Öncüsü", img: "https://www.girgin.org/wp-content/uploads/2018/03/Hipokrat.jpg", facts: ["Geometrinin öğelerini (Elements) ilk kez sistematik kitaplaştıran kişidir.", "'Ayıcıkların kareselleştirilmesi' (Lunes) problemi ile tanınır.", "Geometrik ispatları mantıksal bir sıra ile sunan ilk öncülerdendir."] },
-            { name: "Arşimet", era: "M.Ö. 287 - 212", tag: "Analiz ve Mekanik", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Domenico-Fetti_Archimedes_1620.jpg/500px-Domenico-Fetti_Archimedes_1620.jpg", facts: ["Pi sayısını 3 <span class='frac'><span>10</span><span class='bottom'>71</span></span> < π < 3 <span class='frac'><span>1</span><span class='bottom'>7</span></span> aralığında hesapladı.", "Daire alanını çokgenlerle (exhaustion) hesaplayan dâhidir.", "Mekanik dengeleri geometri ispatlarında bir yöntem olarak kullandı."] },
-            { name: "Eratosthenes", era: "M.Ö. 276 - 194", tag: "Dünyanın Çevresi", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Eratosthenes_profile.png/500px-Eratosthenes_profile.png", facts: ["Dünyanın çevresini gölge boyları ve mesafe ile ölçmeyi başardı.", "Asal sayıları ayıklamak için 'Eratosthenes Kalburu'nu buldu.", "Matematiksel coğrafya biliminin ismini koyan ve kuran kişidir."] },
-            { name: "Pergeli Apollonius", era: "M.Ö. 262 - 190", tag: "Konik Kesitler", img: "https://upload.wikimedia.org/wikipedia/commons/6/63/Apollonii_Pergei_Opera_1537_detail.jpg", facts: ["Elips, Parabol ve Hiperbol isimlerini literatüre kazandıran dâhidir.", "8 kitaptan oluşan 'Conics' (Konikler) adlı anıtsal eserin yazarıdır.", "Konikleri tek bir koni yüzeyini keserek tanımlayan sistemi kurdu."] },
-            { name: "Diophantus", era: "M.S. 200 - 284", tag: "Cebirin Babası", img: "https://upload.wikimedia.org/wikipedia/commons/6/61/%CE%94%CE%B9%CF%8C%CF%86%CE%B1%CE%BD%CF%84%CE%BF%CF%82_-_Diophantos_-_%D0%94%D0%98%D0%9E%D0%A4%D0%90%D0%9D%D0%A2.jpg", facts: ["Sayılar teorisi üzerine kurulu 'Arithmetica' adlı eserin yazarıdır.", "Denklemleri sembolik bir dil kullanarak çözen ilk öncüdür.", "Belirsiz denklemlerin tam sayı çözümleri üzerine uzmanlaşmıştır."] },
-            { name: "Harezmi", era: "780 - 850", tag: "Cebir ve Algoritma", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/1983_CPA_5426_%281%29.png/500px-1983_CPA_5426_%281%29.png", facts: ["Cebiri bağımsız bir matematik dalı olarak kuran 'El-Cebr'i yazmıştır.", "Bilinmeyen (x) için sistematik çözüm yolları ve algoritmalar sundu.", "Sıfırın ve onluk sistemin tüm dünyada yayılmasını sağladı."] },
-            { name: "Isaac Newton", era: "1643 - 1727", tag: "Evrensel Bilim", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Portrait_of_Sir_Isaac_Newton%2C_1689_%28brightened%29.jpg/500px-Portrait_of_Sir_Isaac_Newton%2C_1689_%28brightened%29.jpg", facts: ["Türev ve integral işlemlerini 'Kalkülüs' altında birleştirmiştir.", "Evrensel çekim yasasını matematiksel bir dil kullanarak ispatladı.", "Modern bilimin yönünü değiştiren 'Principia'yı yazmıştır."] },
-            { name: "Leibniz", era: "1646 - 1716", tag: "Sembolik Kalkülüs", img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Christoph_Bernhard_Francke_-_Bildnis_des_Philosophen_Leibniz_%28ca._1695%29.jpg/500px-Christoph_Bernhard_Francke_-_Bildnis_des_Philosophen_Leibniz_%28ca._1695%29.jpg", facts: ["Bugün kullanılan dx ve ∫ sembollerini içeren modern notasyonu kurdu.", "Modern bilgisayar mantığının temeli olan binary sistemi üzerine çalıştı.", "Newton ile eş zamanlı olarak Kalkülüs'ü keşfeden dâhidir."] }
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/e/e4/Ahmes_Nefertari_Grab_10.JPG",
+                tr: { name: "Ahmes (Ahmose)", era: "M.Ö. 1550", tag: "Mısır Papirüsleri", facts: ["Rhind Papirüsü'nü kopyalayan kâtiptir; Mısır matematiğinin ana kaynağıdır.", "Matematiği 'Tüm gizli şeyleri anlama yolu' olarak tanımlamıştır.", "Birim kesirleri (1/n) kullanarak aritmetik sistemini kurmuştur.", "Problem çözümlerinde 'Yanlış Konum' metodunu belgelemiştir.", "Kesirleri ardışık olarak ikiye katlama (doubling) yöntemini kullanmıştır."] },
+                en: { name: "Ahmes (Ahmose)", era: "1550 B.C.", tag: "Egyptian Papyri", facts: ["Scribe who copied the Rhind Papyrus; the main source of Egyptian mathematics.", "Defined mathematics as 'the way to understand all hidden things'.", "Established an arithmetic system using unit fractions (1/n).", "Documented the 'False Position' method in problem solving.", "Used the method of consecutive doubling for fractional arithmetic."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Illustrerad_Verldshistoria_band_I_Ill_107.jpg/500px-Illustrerad_Verldshistoria_band_I_Ill_107.jpg",
+                tr: { name: "Thales", era: "M.Ö. 625 - 547", tag: "İyonya Okulu", facts: ["Matematiği ispatla (deductive reasoning) tanıştıran ilk filozoftur.", "Dairenin çap tarafından ikiye bölündüğünü ispatlayarak kanıt kültürünü başlattı.", "Piramitlerin boyunu, gölge benzerliklerini kullanarak ölçmüştür.", "Ters açıların eşitliğini matematiksel olarak ortaya koymuştur.", "İkizkenar üçgenlerin taban açılarının eşit olduğunu kanıtlamıştır."] },
+                en: { name: "Thales of Miletus", era: "625 - 547 B.C.", tag: "Ionian School", facts: ["The first philosopher to introduce deductive reasoning to mathematics.", "Initiated the culture of proof by proving that a circle is bisected by its diameter.", "Measured the height of pyramids using shadow similarities.", "Mathematically demonstrated the equality of vertically opposite angles.", "Proved that the base angles of an isosceles triangle are always equal."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Pythagoras_in_the_Roman_Forum%2C_Colosseum.jpg/500px-Pythagoras_in_the_Roman_Forum%2C_Colosseum.jpg",
+                tr: { name: "Pisagor", era: "M.Ö. 570 - 495", tag: "Sayılar Evreni", facts: ["Sayıların evrenin temeli olduğunu savunan gizemli bir kardeşlik örgütü kurdu.", "İrrasyonel sayıların (√2) keşfiyle matematik tarihindeki ilk büyük krizi çıkardı.", "Kenar ve köşegenin 'ölçülemez' olduğunu görerek geometriyi sarstı.", "Kendi adıyla anılan dik üçgen teoremini (a² + b² = c²) genel formda ispatladı.", "Müzik notaları ile sayısal oranlar arasındaki bağı keşfetmiştir."] },
+                en: { name: "Pythagoras", era: "570 - 495 B.C.", tag: "Universe of Numbers", facts: ["Founded a secret brotherhood asserting that numbers are the foundation of the universe.", "Triggered the first mathematical crisis by discovering irrational numbers (√2).", "Disrupted geometry by demonstrating that a square's side and diagonal are incommensurable.", "Proved the right-triangle theorem (a² + b² = c²) that bears his name in its general form.", "Discovered the mathematical relationship between musical notes and numerical ratios."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjgGT1Ej3zhb-D5La59jZhy-_W8IkFQQNF40oUZZ2vXF9e-Y14a7ZufHbtKXkDWxug7NycxD5CLIR0jrznYDLJ1I80rmUSMJh0YgyQ7TNazA&s=10",
+                tr: { name: "Elealı Zeno", era: "M.Ö. 490 - 430", tag: "Paradokslar", facts: ["Sonsuz küçüklük ve hareket kavramlarını sorgulayan paradokslarıyla ünlüdür.", "Meşhur 'Aşil ve Kaplumbağa' paradoksuyla matematiği derin düşünceye itti.", "Mesafe kat etmenin sonsuz bölünme gerektirdiği üzerine kuramlar sundu.", "'Uçan Ok' paradoksu ile anlık zaman dilimlerinde hareketin imkansızlığını savundu.", "Döneminin matematik anlayışına mantıksal zorluklar getirerek gelişimi tetikledi."] },
+                en: { name: "Zeno of Elea", era: "490 - 430 B.C.", tag: "Paradoxes", facts: ["Famous for his paradoxes questioning the concepts of infinity and motion.", "Pushed mathematics into deep philosophical thought with the 'Achilles and the Tortoise' paradox.", "Posed theories arguing that traversing distance requires infinite division.", "Defended the impossibility of motion in an instant with his 'Arrow' paradox.", "Triggered the evolution of calculus by presenting logical challenges to the math of his time."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkmymlZznn5nerhuM21bcpEAwpGZT6OLhLxQ7Ksy-XNEnKTsW80o8vuAlYnQGzEbTxL7f3nhK1veVJIFaoBQXhbx_A8xO9pga7lTrJECOG8Q&s=10",
+                tr: { name: "Demokritos", era: "M.Ö. 460 - 370", tag: "Atomik Geometri", facts: ["Koni ve piramidin hacimlerinin silindir/prizmanın 1/3'ü olduğunu buldu.", "Evrenin bölünemez atomlardan oluştuğu fikrini matematiğe uyarladı.", "Katı cisimlerin sonsuz ince dilimlerden oluştuğu düşüncesine öncülük etti.", "Matematik ve doğa felsefesi üzerine 70'ten fazla eser yazmış ancak çoğu kaybolmuştur.", "Sonsuz küçüklerin doğasını sorgulayarak integral mantığına zemin hazırladı."] },
+                en: { name: "Democritus", era: "460 - 370 B.C.", tag: "Atomic Geometry", facts: ["Found that the volume of a cone/pyramid is 1/3 of its corresponding cylinder/prism.", "Adapted the idea of indivisible atoms to mathematical thought.", "Pioneered the concept that solid objects consist of infinitely thin slices.", "Wrote over 70 works on mathematics and natural philosophy, though most were lost.", "Laid the groundwork for integral calculus by questioning the nature of infinitesimals."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Plato_Silanion_Musei_Capitolini_MC1377.jpg/500px-Plato_Silanion_Musei_Capitolini_MC1377.jpg",
+                tr: { name: "Platon", era: "M.Ö. 427 - 347", tag: "Atina Akademisi", facts: ["Akademisinin kapısına 'Geometri bilmeyen girmesin' yazdıran filozoftur.", "Matematiksel nesnelerin soyut ve mükemmel idealar olduğunu savunmuştur.", "Beş düzgün çokyüzlüyü (Platonik Cisimler) felsefi evren modeline entegre etti.", "İrrasyonellik kavramını bilmeyenleri 'insan sayılmaya layık değil' diye niteler.", "Matematiği zihni gerçeğe hazırlayan en önemli eğitim disiplini saydı."] },
+                en: { name: "Plato", era: "427 - 347 B.C.", tag: "Academy of Athens", facts: ["The philosopher who inscribed 'Let no one ignorant of geometry enter' above his Academy.", "Argued that mathematical objects are abstract and perfect ideas.", "Integrated the five regular polyhedra (Platonic Solids) into a philosophical model of the universe.", "Described those ignorant of mathematical irrationality as 'unworthy of being human'.", "Considered mathematics the most crucial educational discipline to prepare the mind for truth."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS82LPwbh7jN1tqgdS0odNUyy2Sl4PCaSTcGH8Djx20qEguxZhcY62ngkoBqtrYSQaZP4QqTl5etjtwwXDrmL8ZWx0-jF5rFU5BPf5dkW8F&s=10",
+                tr: { name: "Aristo", era: "M.Ö. 384 - 322", tag: "Mantığın Temeli", facts: ["Tümdengelimli (deductive) mantığın kurallarını kesinlikle tanımladı.", "İspat biliminin kuramsal çerçevesini çizerek Öklid'e yol gösterdi.", "Potansiyel sonsuzluk ve aktüel sonsuzluk ayrımını yaparak matematiğe yön verdi.", "Matematiksel nesnelerin, fiziksel nesnelerin soyutlamaları olduğunu savundu.", "Matematiği diğer tüm bilimlerin temeli olarak konumlandırdı."] },
+                en: { name: "Aristotle", era: "384 - 322 B.C.", tag: "Foundation of Logic", facts: ["Defined the rules of deductive logic with absolute precision.", "Guided Euclid by establishing the theoretical framework of proof science.", "Steered mathematics by distinguishing between potential infinity and actual infinity.", "Argued that mathematical objects are merely abstractions of physical objects.", "Positioned mathematics as the fundamental basis for all other sciences."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSinAghCsSesi_RoZnJIsI7GwUOBexu_gY65Wd5LZLI5VkIj7e4C6Q7uJNj2-73AzbvqHeUBgitiwefJD7p48kUV1-iXxF-xU6ObYUFYkPE&s=10",
+                tr: { name: "Aryabhata", era: "M.S. 476 - 550", tag: "Hint Matematiği", facts: ["Pi (π) değerini 3.1416 olarak çok yakın bir hassasiyetle hesapladı.", "Dünya'nın kendi ekseni etrafında döndüğünü matematiksel olarak belirtti.", "Sinüs tablolarını geliştirerek trigonometriye büyük katkı sundu.", "Cebirsel denklemleri harfler kullanarak sembolik bir şekilde ifade etti.", "Gezegenlerin yörüngelerini eliptik modellerle açıklamaya çalıştı."] },
+                en: { name: "Aryabhata", era: "476 - 550 A.D.", tag: "Indian Mathematics", facts: ["Calculated the value of Pi (π) as 3.1416 with remarkable precision.", "Mathematically stated that the Earth rotates on its own axis.", "Made major contributions to trigonometry by developing early sine tables.", "Expressed algebraic equations symbolically using letters of the alphabet.", "Attempted to explain the orbits of planets using elliptical mathematical models."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLXrfw5qdsYhuf2amyhe53pf09U4u4-ipQqlVMg28dLWKn57RQPMKjiluSMg4B4gZ63r-p3sCkJ2d5spMWEiXIcVoXtEXsqKm5Ee2E9rxF&s=10",
+                tr: { name: "Sabit bin Kurra", era: "826 - 901", tag: "İslam Bilim Çağı", facts: ["Dost sayılar (amicable numbers) için genel bir kural geliştirdi.", "Öklid ve Apollonius'un eserlerini Arapçaya çevirerek bilimi köprüledi.", "İntegral hesabın öncüsü sayılan parabol ve paraboloid alan hesapları yaptı.", "Pisagor teoremini her türlü üçgeni kapsayacak şekilde genelleyen bir formül buldu.", "Astronomide 'trepidation' (ekinoks titremesi) teorisini matematiksel olarak modelledi."] },
+                en: { name: "Thabit ibn Qurra", era: "826 - 901", tag: "Islamic Golden Age", facts: ["Developed a general mathematical rule for discovering amicable numbers.", "Bridged scientific history by translating Euclid and Apollonius into Arabic.", "Performed area and volume calculations considered precursors to integral calculus.", "Found a formula that generalized the Pythagorean theorem to encompass all types of triangles.", "Mathematically modeled the 'trepidation of the equinoxes' in astronomy."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTOCSYZlBocgxSbiZqisHGia3riiTDiZsbb74E716xc-f5GmRHDhoNWN17V-nRoeho0VUPSaR1hDxxjkFWgzHRcD31WjUjB4H1E0tw7NG-5Xg&s=10",
+                tr: { name: "İbn-i Heysem", era: "965 - 1040", tag: "Optik ve Geometri", facts: ["Optik biliminde matematiksel ispat yöntemini ilk kullanan bilgindir.", "Dördüncü dereceden denklemlerin çözümünde geometrik yöntemler sundu.", "Yansıma ve kırılma yasalarını geometri ile mükemmel şekilde açıkladı.", "Kendi adıyla anılan 'Alhazen Problemi'ni bilardo topları ve aynalar üzerinden formüle etti.", "Matematiksel fiziğin en önemli kurucularından biri kabul edilir."] },
+                en: { name: "Ibn al-Haytham", era: "965 - 1040", tag: "Optics and Geometry", facts: ["The first scholar to strictly apply mathematical proof methods in optics.", "Presented geometric methods for solving fourth-degree equations.", "Explained the laws of reflection and refraction perfectly using geometry.", "Formulated the 'Alhazen Problem' involving billiard balls and spherical mirrors.", "Is widely considered one of the most important founders of mathematical physics."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9TARSUkylrmTYk7gSlCNrFJOGi6yO6fcOF3R4hwViBo6Fbr849Bft_l34Kjm1HTkaW8CBg0V6Lvnv7XzXIl2U7cJbTCPg8TpI1wqmDPEGIg&s=10",
+                tr: { name: "Ömer Hayyam", era: "1048 - 1131", tag: "Cebir ve Şiir", facts: ["Üçüncü dereceden denklemleri konik kesitler yardımıyla çözmüştür.", "Pascal Üçgeni olarak bilinen katsayıları çok önceden keşfetmiştir.", "Celali Takvimi'ni hazırlayarak zamanı matematiksel bir titizlikle ölçtü.", "Öklid'in 'Paralellik Postulatı' üzerine alternatif geometrilerin yolunu açan çalışmalar yaptı.", "Cebiri, 'sayısal ve geometrik büyüklükleri bulma sanatı' olarak tanımladı."] },
+                en: { name: "Omar Khayyam", era: "1048 - 1131", tag: "Algebra and Poetry", facts: ["Solved third-degree cubic equations systematically using conic sections.", "Discovered the binomial coefficients of 'Pascal's Triangle' centuries early.", "Measured time with extreme mathematical precision by creating the Jalali Calendar.", "Conducted groundbreaking work on Euclid's 'Parallel Postulate', paving the way for non-Euclidean geometries.", "Defined algebra elegantly as 'the art of finding numerical and geometric unknowns'."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPn6u_daWOvL_c-RnNI31C_ppQgHZfCXiDT0BeEG-lPbDgPHzw-RfpP_t-zZRNTSxC-M3gmgRH3pmGG22uh3Ed5FPMcvsQYhdwYrkaQs7f&s=10",
+                tr: { name: "Pisalı Fibonacci", era: "1170 - 1250", tag: "Altın Oran", facts: ["Hint-Arap rakam sistemini Avrupa'ya tanıtan 'Liber Abaci'yi yazdı.", "Kendi adıyla anılan sayı dizisini (1,1,2,3,5...) tavşanların üremesi problemiyle keşfetti.", "Doğadaki 'Altın Oran'ın matematiksel yapısını formüle etti.", "Kesirleri modern formda (çizgi ile pay/payda) Avrupa'da ilk kullananlardandır.", "Ticari matematiğin ve muhasebenin Avrupa'da gelişimine öncülük etti."] },
+                en: { name: "Fibonacci", era: "1170 - 1250", tag: "The Golden Ratio", facts: ["Wrote 'Liber Abaci', introducing the Hindu-Arabic numeral system to Europe.", "Discovered the famous number sequence (1,1,2,3,5...) through a problem about rabbit reproduction.", "Mathematically formulated the 'Golden Ratio' found throughout nature.", "Was among the first in Europe to use fractions in their modern form with a horizontal bar.", "Pioneered the development of commercial mathematics and double-entry bookkeeping in Europe."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Leonardo_self_portrait.jpg/500px-Leonardo_self_portrait.jpg",
+                tr: { name: "Leonardo da Vinci", era: "1452 - 1519", tag: "Rönesans Dehası", facts: ["Altın oranı sanat ve anatomiyle harmanlayarak geometriye uyguladı.", "Perspektif kurallarını matematiksel bir temel üzerine inşa etti.", "Matematikçi Luca Pacioli'nin 'İlahi Oran' kitabı için çokyüzlülerin çizimlerini yaptı.", "Dişli çarklar ve mekanik sistemler için hassas geometrik hesaplamalar geliştirdi.", "Matematiği 'evrenin görsel dili ve doğanın nihai gerçeği' olarak kullanmıştır."] },
+                en: { name: "Leonardo da Vinci", era: "1452 - 1519", tag: "Renaissance Genius", facts: ["Applied the golden ratio to geometry by blending it with art and anatomy.", "Built the rules of visual perspective on strict mathematical foundations.", "Illustrated the regular polyhedra for mathematician Luca Pacioli's book 'The Divine Proportion'.", "Developed precise geometric calculations for gears, pulleys, and mechanical systems.", "Masterfully utilized mathematics as 'the visual language of the universe and the ultimate truth of nature'."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Cardano.jpg/500px-Cardano.jpg",
+                tr: { name: "Gerolamo Cardano", era: "1501 - 1576", tag: "Kübik Denklemler", facts: ["3. ve 4. dereceden denklemlerin çözüm formüllerini 'Ars Magna' kitabında yayımladı.", "Olasılık teorisinin ilk çalışmalarını başlatan matematikçilerdendir.", "Karmaşık sayıların (i) varlığını ilk kez fark eden ve kullanan öncülerdendir.", "Kriptografi ve şifreleme algoritmaları üzerine erken dönem çalışmalar yaptı.", "Negatif kökleri 'kurgusal' (fictitious) olarak adlandırarak cebirsel kabulü genişletti."] },
+                en: { name: "Gerolamo Cardano", era: "1501 - 1576", tag: "Cubic Equations", facts: ["Published the first algebraic solution formulas for 3rd and 4th degree equations.", "One of the mathematicians who initiated early studies in probability theory.", "A pioneer who was among the first to recognize the existence of complex numbers (i).", "Conducted early foundational work on cryptography and encryption algorithms.", "Broadened algebraic acceptance by referring to negative roots as 'fictitious' rather than impossible."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg/500px-Justus_Sustermans_-_Portrait_of_Galileo_Galilei%2C_1636.jpg",
+                tr: { name: "Galileo Galilei", era: "1564 - 1642", tag: "Modern Bilim", facts: ["Doğanın kitabının 'matematiksel bir dille' yazıldığını savundu.", "Sarkacın hareket yasalarını (isochronism) matematiksel hassasiyetle belirledi.", "İvme ve hız arasındaki ilişkiyi ilk kez formüle etti.", "Eğik atış hareketinin parabolik bir yörünge izlediğini matematiksel olarak kanıtladı.", "Teleskobu geliştirerek gök cisimlerinin geometrik özelliklerini gözlemledi."] },
+                en: { name: "Galileo Galilei", era: "1564 - 1642", tag: "Modern Science", facts: ["Famously argued that the book of nature is written in a 'mathematical language'.", "Determined the physical laws of pendulum motion with mathematical precision.", "The first to mathematically formulate the relationship between acceleration and velocity.", "Mathematically proved that projectile motion follows a perfect parabolic trajectory.", "Improved the telescope to geometrically observe and calculate the features of celestial bodies."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg/500px-Frans_Hals_-_Portret_van_Ren%C3%A9_Descartes.jpg",
+                tr: { name: "René Descartes", era: "1596 - 1650", tag: "Analitik Geometri", facts: ["Geometri ve cebiri birleştiren 'Kartezyen Koordinat' sistemini kurdu.", "Matematiksel denklemleri grafikler üzerinde temsil etmeyi başlattı.", "Bilinmeyenler için 'x, y, z', bilinenler için 'a, b, c' kullanımını yaygınlaştırdı.", "Üslü sayıları günümüzdeki modern notasyonuyla (x², x³) ilk kez o yazdı.", "Optik yasalarını kartezyen düzlemde inceleyerek gökkuşağının açısını hesapladı."] },
+                en: { name: "René Descartes", era: "1596 - 1650", tag: "Analytic Geometry", facts: ["Founded the 'Cartesian Coordinate' system, uniting geometry and algebra.", "Initiated the practice of representing mathematical equations visually on graphs.", "Popularized the standard use of 'x, y, and z' to represent unknown variables.", "Was the first to write exponents (x², x³) using their modern standard notation.", "Geometrically calculated the angle of a rainbow by studying the laws of optics on a Cartesian plane."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/licensed-image?q=tbn:ANd9GcRHXKd8UCufHkXuXEmz1RIfZorSAhKFSPJWznJV1YZhJC6Gc7L7PUgN-WdMAdnKWCbqWC_Lsg138Q8lgbiJh1H7_SKOooP5vz0VPzZ37ffaFLBTMyFqmFE2JdnddWn4ooWHKPmMI4UOeE3B&s=19",
+                tr: { name: "Blaise Pascal", era: "1623 - 1662", tag: "Olasılık ve Hesap", facts: ["Olasılık teorisinin temellerini atan 'Şans Teorisi'ni Fermat ile geliştirdi.", "İlk mekanik hesap makinelerinden birini (Pascaline) henüz 19 yaşındayken icat etti.", "Binom katsayılarını gösteren ünlü 'Pascal Üçgeni'ni modern anlamda kurguladı.", "16 yaşındayken projektif geometri üzerine kendi adıyla anılan 'Pascal Teoremi'ni kanıtladı.", "Akışkanlar basıncı (hidrostatik) üzerine matematiksel yasalar keşfetti."] },
+                en: { name: "Blaise Pascal", era: "1623 - 1662", tag: "Probability and Calculus", facts: ["Developed the 'Theory of Chance', laying the early foundations for probability theory.", "Invented one of the world's first mechanical calculators, known as the Pascaline.", "Constructed the famous 'Pascal's Triangle' mapping binomial coefficients.", "Proved his eponymous 'Pascal's Theorem' in projective geometry when he was only 16.", "Discovered mathematical laws regarding the pressure of fluids (hydrostatics)."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqvOJ-o9Khs86vcHK5mJQ5hRN5AWZIfrkI4g&s",
+                tr: { name: "Jacob Bernoulli", era: "1654 - 1705", tag: "Sonsuz Seriler", facts: ["Olasılık teorisindeki 'Büyük Sayılar Yasası'nı kanıtladı.", "Bernoulli sayıları ve olasılık üzerine anıtsal 'Ars Conjectandi' eserini yazdı.", "Sonsuz seriler üzerine derin analizler yapan bir dâhidir.", "Sürekli bileşik faiz problemini incelerken 'e' sabitinin değerini formüle etti.", "Kutupsal koordinatları (polar coordinates) eğrileri çizmek için sistemleştirdi."] },
+                en: { name: "Jacob Bernoulli", era: "1654 - 1705", tag: "Infinite Series", facts: ["Rigorously proved the 'Law of Large Numbers' in probability theory.", "Published a monumental and foundational work on Bernoulli numbers and probability.", "A genius who performed deep, pioneering mathematical analyses on infinite series.", "Formulated the value of the mathematical constant 'e' while studying continuous compound interest.", "Systematized the use of polar coordinates for graphing complex curves."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Leonhard_Euler.jpg/500px-Leonhard_Euler.jpg",
+                tr: { name: "Leonhard Euler", era: "1707 - 1783", tag: "Notasyon Ustası", facts: ["f(x), π, i, Σ ve e sayısını matematiksel standart haline getirdi.", "Graf teorisinin ve topolojinin (Königsberg Köprüleri) kurucusu kabul edilir.", "Tarihin en güzel denklemini (e<sup>iπ</sup> + 1 = 0) buldu.", "Hayatı boyunca 800'den fazla makale yazarak tarihin en üretken matematikçisi oldu.", "İki gözü de kör olduktan sonra bile zihninden karmaşık ay yörüngesi hesapları yaptı."] },
+                en: { name: "Leonhard Euler", era: "1707 - 1783", tag: "Master of Notation", facts: ["Standardized modern mathematical notations including f(x), pi (π), i, Σ, and the number e.", "Considered the founding father of graph theory and topology (Seven Bridges of Königsberg).", "Discovered what is widely called the most beautiful equation in history (e<sup>iπ</sup> + 1 = 0).", "Became the most prolific mathematician in history, writing over 800 papers in his lifetime.", "Performed incredibly complex lunar orbit calculations purely in his head after going completely blind."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQ13mU-Fg_x1cdjLhV7TYJvjpxx1GOsz7jfel-26jNWVFuFbbmUwNV9v4_jUpOgVPGJLYtAn0-yYddTky9ey6kcX2BqWZSzX8mKpkAY57l&s=10",
+                tr: { name: "Albert Einstein", era: "1879 - 1955", tag: "Matematiksel Fizik", facts: ["Eğri uzay-zaman geometrisini (Riemann) kullanarak genel göreliliği formüle etti.", "Enerji-kütle denkliğini (E=mc²) kurarak modern fiziğin temelini attı.", "Matematiğin doğayla uyumuna derin bir hayranlık duyan bir dâhidir.", "Brown hareketinin istatistiksel matematiğini çözerek atomların varlığını kanıtladı.", "Tensör hesabını (tensor calculus) fiziksel dünyayı modellemek için popülerleştirdi."] },
+                en: { name: "Albert Einstein", era: "1879 - 1955", tag: "Mathematical Physics", facts: ["Formulated general relativity relying heavily on the geometry of curved spacetime.", "Laid the foundation of modern physics by establishing mass-energy equivalence (E=mc²).", "A scientific genius who was deeply fascinated by the harmony of mathematics with nature.", "Proved the existence of atoms by solving the statistical mathematics behind Brownian motion.", "Popularized the use of tensor calculus to mathematically model the physical world."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjzYsszYIM4ITXLyKtO9ocPTEBtKa4Au5XvF3fHoejavYPwNVSP5rtoWNR_9SPiibVIaMT_9lukHZ5Eh5liEJHUkrWFEJNzf3hGB4nsmfR&s=10",
+                tr: { name: "Augustus De Morgan", era: "1806 - 1871", tag: "Sembolik Mantık", facts: ["Kendi adıyla anılan sembolik mantık yasalarını (De Morgan Yasaları) geliştirdi.", "Matematiksel tümevarım (induction) terimini ilk kez o tanımladı.", "Cebiri sembolik bir mantık dili olarak yeniden kurguladı.", "4 Renk Teoremi'ni öğrencisi Guthrie ile birlikte ilk formüle edenlerdendir.", "İlişkiler mantığını (logic of relations) kurarak bilgisayar bilimlerine öncülük etti."] },
+                en: { name: "Augustus De Morgan", era: "1806 - 1871", tag: "Symbolic Logic", facts: ["Developed the fundamental laws of symbolic logic that bear his name.", "The first mathematician to formally define the term 'mathematical induction'.", "Helped reconstruct algebra as a rigorous language of symbolic logic.", "Was one of the first to mathematically formulate the Four Color Theorem with his student Guthrie.", "Pioneered computer science by establishing the mathematical 'logic of relations'."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Euklid-von-Alexandria_1.jpg/800px-Euklid-von-Alexandria_1.jpg",
+                tr: { name: "Öklid (Euclid)", era: "M.Ö. 300", tag: "Aksiyomatik Sistem", facts: ["Modern geometri eğitiminin temeli olan 13 ciltlik 'Elemanlar' kitabının yazarıdır.", "Geometriyi aksiyomlar ve postulatlar üzerine mantıksal bir zincirle kurdu.", "Asal sayıların sonsuzluğunu tümdengelimli yöntemle zarifçe ispatlamıştır.", "Algoritma kavramının ilk örneklerinden olan 'Öklid Algoritması'nı geliştirdi.", "İncil'den sonra tarihte en çok basılan ve incelenen ders kitabını yazmıştır."] },
+                en: { name: "Euclid", era: "300 B.C.", tag: "Axiomatic System", facts: ["Author of 'Elements', the foundational 13-volume textbook for modern geometry education.", "Built geometry logically upon a strict chain of axioms and postulates.", "Elegantly proved the infinitude of prime numbers using deductive reasoning.", "Developed the 'Euclidean Algorithm', one of the oldest known algorithms.", "Wrote the most widely printed and studied textbook in history after the Bible."] }
+            },
+            {
+                img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsio0Q8PbZUfTgNiFUgeGWTWj9F2aSThcnzPHGrZ6FnDP-vKNxTN-fxhABV1iGTHb-fqBQ3wFSK_8nqn1qUbn45MAN6segP8-IxjbwOkR-MQ&s=10",
+                tr: { name: "İskenderiyeli Hypatia", era: "M.S. 350 - 415", tag: "Son Büyük Bilgin", facts: ["İskenderiye Okulu'nun son büyük temsilcisi olan ilk kadın matematikçidir.", "Apollonius'un 'Konikler'i ve Diophantus'un 'Arithmetica'sı üzerine yorumlar yazdı.", "Döneminin en saygın bilim insanı, felsefe ve matematik hocasıydı.", "Gök cisimlerinin konumunu ölçen usturlabın (astrolabe) tasarımını geliştirdi.", "Sıvıların yoğunluğunu ölçen hidrometre cihazının inşasında katkılarda bulundu."] },
+                en: { name: "Hypatia of Alexandria", era: "350 - 415 A.D.", tag: "Last Great Scholar", facts: ["The last great female mathematician and representative of the School of Alexandria.", "Wrote extensive commentaries on the works of Apollonius and Diophantus.", "The most widely respected scientist and philosophy teacher of her era.", "Improved the design of the astrolabe, a complex instrument used in astronomy.", "Contributed significantly to the construction of the hydrometer for measuring liquid density."] }
+            },
+            {
+                img: "https://scontent.fesb7-1.fna.fbcdn.net/v/t39.30808-6/471183339_10162168442881772_4293543163508209489_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=13d280&_nc_ohc=K2EFKkOdrt4Q7kNvwFp5Vf_&_nc_oc=Adq6EH4Iy--sPxcXAst1IWH4VGZXSG9-0_OnBFdWipozdtGlETp6LeFx4caDHD3wAT4&_nc_zt=23&_nc_ht=scontent.fesb7-1.fna&_nc_gid=yz_yprEg_s4oGMfc6FpvhA&_nc_ss=7a3a8&oh=00_Af0Hmz73UK8oDcyTD-tN_bw_R0WlOtk1quetIcfdMxaEyg&oe=69DB4AEA",
+                tr: { name: "Knidoslu Eudoxus", era: "M.Ö. 408 - 355", tag: "Oranlar Teorisi", facts: ["Arşimet'in kullandığı 'Tüketme Yöntemi'nin gerçek mimarıdır.", "İrrasyonel büyüklükleri geometriyle tutarlı hale getiren oranlar teorisini kurdu.", "Gök cisimlerinin hareketlerini açıklayan 'Ortak Merkezli Küreler' modelini geliştirdi.", "Bir yılın 365 gün 6 saat olduğunu hesaplayarak takvim reformuna öncülük etti.", "Öklid'in 5. kitabının ve altın oran çalışmalarının temelini o atmıştır."] },
+                en: { name: "Eudoxus of Cnidus", era: "408 - 355 B.C.", tag: "Theory of Proportions", facts: ["The true architect of the 'Method of Exhaustion' later famously used by Archimedes.", "Established the theory of proportions, making irrational magnitudes consistent with geometry.", "Developed a sophisticated model of concentric spheres explaining celestial motions.", "Spearheaded calendar reform by mathematically calculating that a year is 365.25 days.", "Laid the essential groundwork for Book V of Euclid's Elements and the golden ratio."] }
+            },
+            {
+                img: "https://www.girgin.org/wp-content/uploads/2018/03/Hipokrat.jpg",
+                tr: { name: "Sakızlı Hipokrat", era: "M.Ö. 470 - 410", tag: "Öğelerin Öncüsü", facts: ["Geometrinin öğelerini (Elements) ilk kez sistematik bir kitapta toplayan kişidir.", "'Ayıcıkların kareselleştirilmesi' (Lunes of Hippocrates) problemi ile tanınır.", "Geometrik ispatları mantıksal bir sıra ile sunan ilk öncülerdendir.", "Küpün iki katına çıkarılması problemini (Delos problemi) iki orta orantıya indirgedi.", "Geometride harfleri (örneğin 'A, B ve C noktaları' şeklinde) kullanan ilk matematikçidir."] },
+                en: { name: "Hippocrates of Chios", era: "470 - 410 B.C.", tag: "Pioneer of Elements", facts: ["The first person to systematically compile the elements of geometry into a textbook.", "Famously known for his work on the problem of 'Squaring the Lunes'.", "One of the earliest pioneers to present geometric proofs in a strictly logical sequence.", "Reduced the legendary 'Delian problem' (doubling the cube) to finding two mean proportionals.", "Was the first mathematician to use letters (e.g., 'points A, B, and C') to designate geometric figures."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Domenico-Fetti_Archimedes_1620.jpg/500px-Domenico-Fetti_Archimedes_1620.jpg",
+                tr: { name: "Arşimet", era: "M.Ö. 287 - 212", tag: "Analiz ve Mekanik", facts: ["Pi sayısını 3 <span class='frac'><span>10</span><span class='bottom'>71</span></span> < π < 3 <span class='frac'><span>1</span><span class='bottom'>7</span></span> aralığında, 96 kenarlı çokgenlerle hesapladı.", "Daire, küre ve silindirin hacim/alan ilişkilerini tüketme yöntemiyle kanıtladı.", "Mekanik dengeleri ve kaldıraç kanunlarını geometri ispatlarında bir yöntem olarak kullandı.", "Parabolik bir kesitin alanının, içindeki üçgenin 4/3'ü olduğunu sonsuz serilerle buldu.", "'Evrendeki kum tanelerinin sayısını' hesaplamak için kendi devasa sayı sistemini icat etti."] },
+                en: { name: "Archimedes", era: "287 - 212 B.C.", tag: "Analysis and Mechanics", facts: ["Calculated Pi precisely within the range of 3 <span class='frac'><span>10</span><span class='bottom'>71</span></span> < π < 3 <span class='frac'><span>1</span><span class='bottom'>7</span></span>.", "Calculated the area and volume of spheres and cylinders using the method of exhaustion.", "Used mechanical balances and levers as a conceptual method in his geometric proofs.", "Found via infinite series that the area of a parabolic segment is 4/3 that of its inscribed triangle.", "Invented a massive number system solely to mathematically calculate 'the number of grains of sand in the universe'."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Eratosthenes_profile.png/500px-Eratosthenes_profile.png",
+                tr: { name: "Eratosthenes", era: "M.Ö. 276 - 194", tag: "Dünyanın Çevresi", facts: ["Dünyanın çevresini gölge boyları ve mesafe ile olağanüstü bir doğrulukla ölçtü.", "Asal sayıları ayıklamak için 'Eratosthenes Kalburu' (Sieve) algoritmasını buldu.", "Matematiksel coğrafya bilimini kurdu ve ilk enlem-boylam ızgaralı haritayı çizdi.", "İskenderiye Kütüphanesi'nin baş kütüphanecisi olarak antik bilginin korunmasını sağladı.", "Dünya'nın eksen eğikliğini (obliquity) büyük bir hassasiyetle hesapladı."] },
+                en: { name: "Eratosthenes", era: "276 - 194 B.C.", tag: "Earth's Circumference", facts: ["Astoundingly measured the Earth's circumference using shadow lengths and distance.", "Invented the famous 'Sieve of Eratosthenes' algorithm to efficiently find prime numbers.", "The foundational figure who established and named the science of mathematical geography.", "Preserved ancient scientific knowledge while serving as the chief librarian of Alexandria.", "Calculated the obliquity of the Earth's axis with remarkable precision."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/6/63/Apollonii_Pergei_Opera_1537_detail.jpg",
+                tr: { name: "Pergeli Apollonius", era: "M.Ö. 262 - 190", tag: "Konik Kesitler", facts: ["Elips, Parabol ve Hiperbol isimlerini literatüre kazandıran 'Büyük Geometrici'dir.", "8 kitaptan oluşan 'Conics' (Konikler) adlı anıtsal eserin yazarıdır.", "Konikleri tek bir koni yüzeyini farklı açılarla keserek tanımlayan sistemi kurdu.", "Gök cisimlerinin tuhaf yörüngelerini açıklayan dış merkezli (epicycle) teoriler geliştirdi.", "Kendi adıyla anılan 'Apollonius Çemberleri' problemiyle mesafe oranlarını inceledi."] },
+                en: { name: "Apollonius of Perga", era: "262 - 190 B.C.", tag: "Conic Sections", facts: ["The genius who coined the enduring terms Ellipse, Parabola, and Hyperbola.", "Author of the monumental and highly influential 8-book treatise called 'Conics'.", "Established the definitive system describing conics by slicing a single cone surface.", "Developed eccentric (epicycle) theories to mathematically explain celestial orbits.", "Examined distance ratios through the famous geometric problem known as 'Circles of Apollonius'."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/6/61/%CE%94%CE%B9%CF%8C%CF%86%CE%B1%CE%BD%CF%84%CE%BF%CF%82_-_Diophantos_-_%D0%94%D0%98%D0%9E%D0%A4%D0%90%D0%9D%D0%A2.jpg",
+                tr: { name: "Diophantus", era: "M.S. 200 - 284", tag: "Cebirin Babası", facts: ["Sayılar teorisi üzerine kurulu 13 ciltlik başyapıt 'Arithmetica' adlı eserin yazarıdır.", "Denklemleri sembolik bir dil (kısaltmalar ve semboller) kullanarak çözen ilk öncüdür.", "Belirsiz denklemlerin (birden fazla değişkenli) tam sayı çözümleri üzerine uzmanlaştı.", "Fermat'nın meşhur 'Büyük Teoremi'ni yazmasına doğrudan ilham veren temel kaynaktır.", "Negatif sayı kavramını bilmese de çıkarma işlemlerini denklem çözümlerinde kurallaştırdı."] },
+                en: { name: "Diophantus", era: "200 - 284 A.D.", tag: "Father of Algebra", facts: ["Author of the seminal 13-volume work 'Arithmetica', built fundamentally on number theory.", "The first true pioneer to solve equations using a form of symbolic language.", "Specialized extensively in finding integer solutions for indeterminate equations.", "Was the fundamental source of inspiration that directly led to Fermat's famous 'Last Theorem'.", "Established rules for subtracting negative values in equations, though he lacked negative numbers."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/1983_CPA_5426_%281%29.png/500px-1983_CPA_5426_%281%29.png",
+                tr: { name: "Harezmi", era: "780 - 850", tag: "Cebir ve Algoritma", facts: ["Cebiri bağımsız ve sistematik bir matematik dalı olarak kuran 'El-Cebr' kitabını yazmıştır.", "Bilinmeyen (x) için sistematik dengelemeler ve algoritmalar sundu.", "Hint rakamlarını, sıfırı ve onluk sistemi İslam dünyasına ve Avrupa'ya tanıttı.", "İkinci dereceden denklemlerin 6 farklı standart formunu ve geometrik çözümlerini buldu.", "Adı, modern bilgisayar biliminin temeli olan 'Algoritma' terimine dönüştü."] },
+                en: { name: "Al-Khwarizmi", era: "780 - 850", tag: "Algebra and Algorithm", facts: ["Wrote 'Al-Jabr', establishing algebra as a fully independent branch of mathematics.", "Presented systematic solution methods and algorithms for finding the unknown (x).", "Ensured the widespread adoption of zero and the decimal system across the globe.", "Found geometric solutions and established the 6 standard forms for solving quadratic equations.", "His name was Latinized to 'Algoritmi', which evolved into the term 'Algorithm'."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Portrait_of_Sir_Isaac_Newton%2C_1689_%28brightened%29.jpg/500px-Portrait_of_Sir_Isaac_Newton%2C_1689_%28brightened%29.jpg",
+                tr: { name: "Isaac Newton", era: "1643 - 1727", tag: "Evrensel Bilim", facts: ["Türev ve integral işlemlerini 'Kalkülüs' (Fluxions) altında birleştirmiştir.", "Evrensel çekim yasasını ve hareket kanunlarını matematiksel bir dille ispatladı.", "Modern fiziğin yönünü tamamen değiştiren başyapıtı 'Principia Mathematica'yı yazmıştır.", "Binom teoremini tamsayı olmayan kuvvetler için genişleterek sonsuz serilere uyguladı.", "Işığın spektrumunu prizmayla ayırarak optik yasalarını geometrik olarak kanıtladı."] },
+                en: { name: "Isaac Newton", era: "1643 - 1727", tag: "Universal Science", facts: ["Unified derivative and integral operations into the cohesive framework of 'Calculus'.", "Proved the law of universal gravitation utilizing a strict mathematical language.", "Wrote 'Principia', a masterpiece that permanently changed the direction of modern science.", "Expanded the binomial theorem to fractional powers, applying it brilliantly to infinite series.", "Geometrically proved the laws of optics by separating the spectrum of light using a prism."] }
+            },
+            {
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Christoph_Bernhard_Francke_-_Bildnis_des_Philosophen_Leibniz_%28ca._1695%29.jpg/500px-Christoph_Bernhard_Francke_-_Bildnis_des_Philosophen_Leibniz_%28ca._1695%29.jpg",
+                tr: { name: "Leibniz", era: "1646 - 1716", tag: "Sembolik Kalkülüs", facts: ["Bugün kullandığımız türev (dx) ve integral (∫) sembollerini içeren modern notasyonu kurdu.", "Modern bilgisayar mantığının ve mimarisinin temeli olan ikili (binary) sayı sistemini tasarladı.", "Newton'dan bağımsız olarak Kalkülüs'ü eş zamanlı keşfeden evrensel dâhidir.", "Matematiği evrensel ve hatasız bir sembolik mantık dili yapmayı hedefledi.", "Toplama, çıkarma, çarpma ve bölme yapabilen ilk gelişmiş mekanik hesap makinesini icat etti."] },
+                en: { name: "Gottfried Leibniz", era: "1646 - 1716", tag: "Symbolic Calculus", facts: ["Established the modern mathematical notation, including the enduring dx and ∫ symbols.", "Conducted early work on the binary system, the very foundation of modern computer logic.", "A genius who independently discovered Calculus concurrently with Isaac Newton.", "Aimed to transform mathematics into a universal, error-free language of symbolic logic.", "Invented the 'Step Reckoner', the first advanced mechanical calculator capable of 4 operations."] }
+            }
         ];
 
+        // UI Metin Çevirileri
+        const uiText = {
+            tr: {
+                title: "Matematik Tarihi",
+                subtitle: "Anlatım Aracı",
+                prep: "Hazırlayanlar",
+                start: "BAŞLA",
+                warnTitle: "Lütfen Cihazı Çevirin",
+                warnDesc: "Matematik Tarihi karşılıklı anlatım aracı için yatay mod gereklidir.",
+                reveal: "İSMİ AÇ",
+                next: "Sonraki Matematikçi"
+            },
+            en: {
+                title: "History of Math",
+                subtitle: "Presentation Tool",
+                prep: "Prepared By",
+                start: "START",
+                warnTitle: "Rotate Your Device",
+                warnDesc: "Landscape mode is required for the History of Mathematics presentation tool.",
+                reveal: "REVEAL NAME",
+                next: "Next Mathematician"
+            }
+        };
+
+        let currentLang = 'tr';
         let pool = [];
         let isAnimating = false;
         const container = document.getElementById('app-container');
+
+        // Dil Seçimi Fonksiyonu
+        function setLanguage(lang) {
+            currentLang = lang;
+            
+            // Buton Stilleri
+            document.getElementById('btn-tr').classList.toggle('active', lang === 'tr');
+            document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+            
+            // Başlangıç Ekranı ve Uyarı Çevirileri
+            document.getElementById('ui-title').innerText = uiText[lang].title;
+            document.getElementById('ui-subtitle').innerText = uiText[lang].subtitle;
+            document.getElementById('ui-prep').innerText = uiText[lang].prep;
+            document.getElementById('ui-start').innerText = uiText[lang].start;
+            document.getElementById('warn-title').innerText = uiText[lang].warnTitle;
+            document.getElementById('warn-desc').innerText = uiText[lang].warnDesc;
+        }
+
+        // Oyunu Başlat
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('app-container').style.display = 'flex';
+            document.getElementById('watermark').style.display = 'block';
+            resetPool();
+            renderNext();
+        }
 
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
@@ -328,7 +555,10 @@
         }
 
         function createCard(dataIndex) {
-            const m = historyOfMath[dataIndex];
+            const mathData = historyOfMath[dataIndex];
+            // Seçili dile göre veriyi çek
+            const m = mathData[currentLang]; 
+            
             const card = document.createElement('div');
             card.className = 'math-card slide-in';
             
@@ -346,7 +576,7 @@
                     <div class="absolute top-4 left-4 lg:top-8 lg:left-8 z-10">
                         <span class="tag-badge">${m.tag}</span>
                     </div>
-                    <img src="${m.img}" alt="Matematikçi" loading="lazy" onerror="this.src='https://via.placeholder.com/800x1200?text=Portre+Bekleniyor'">
+                    <img src="${mathData.img}" alt="Matematikçi" loading="lazy" onerror="this.src='https://via.placeholder.com/800x1200?text=Portre+Bekleniyor'">
                 </div>
                 <div class="info-pane">
                     <div class="progress-text">${currentOrder} / ${historyOfMath.length}</div>
@@ -356,7 +586,7 @@
                             <h1 id="math-name" class="math-title blurred-text text-white">${m.name}</h1>
                             <div class="flex items-center justify-between mt-1 lg:mt-2">
                                 <p class="text-slate-400 font-medium text-xs lg:text-lg italic">${m.era}</p>
-                                <button onclick="revealName(this)" class="btn-reveal px-4 py-1.5 lg:px-8 lg:py-3 rounded-full text-[0.65rem] lg:text-sm font-bold tracking-widest uppercase text-white shadow-xl">İSMİ AÇ</button>
+                                <button onclick="revealName(this)" class="btn-reveal px-4 py-1.5 lg:px-8 lg:py-3 rounded-full text-[0.65rem] lg:text-sm font-bold tracking-widest uppercase text-white shadow-xl">${uiText[currentLang].reveal}</button>
                             </div>
                         </div>
                         
@@ -366,7 +596,7 @@
                         
                         <div class="scroll-indicator">
                             <div class="scroll-line"></div>
-                            <span>Sonraki Matematikçi</span>
+                            <span>${uiText[currentLang].next}</span>
                         </div>
                     </div>
                 </div>
@@ -421,16 +651,14 @@
             const diffX = startX - e.changedTouches[0].clientX;
             const diffY = Math.abs(startY - e.changedTouches[0].clientY);
             
-            // Yana kaydırma algılaması (dikey hareketleri yok sayar)
-            if (diffX > 60 && diffY < 50) {
+            if (diffX > 60 && diffY < 50 && document.getElementById('app-container').style.display === 'flex') {
                 nextCard();
             }
         }, {passive: true});
 
         let scrollTimeout;
         window.addEventListener('wheel', e => {
-            // Yalnızca belirgin yatay kaydırmalarda çalışır
-            if (Math.abs(e.deltaX) > 50 && Math.abs(e.deltaY) < 20) {
+            if (Math.abs(e.deltaX) > 50 && Math.abs(e.deltaY) < 20 && document.getElementById('app-container').style.display === 'flex') {
                 if (!scrollTimeout) {
                     nextCard();
                     scrollTimeout = setTimeout(() => scrollTimeout = null, 1000);
@@ -439,15 +667,10 @@
         }, {passive: true});
 
         window.addEventListener('keydown', e => {
-            if (["ArrowRight", " ", "Enter"].includes(e.key)) {
+            if (["ArrowRight", " ", "Enter"].includes(e.key) && document.getElementById('app-container').style.display === 'flex') {
                 nextCard();
             }
         });
-
-        window.onload = () => {
-            resetPool();
-            renderNext();
-        };
     </script>
 </body>
 </html>
